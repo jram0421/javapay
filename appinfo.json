@@ -29,7 +29,7 @@
   },
   "sdkVersion": "3",
   "shortName": "JavaPay",
-  "uuid": "7c62a80d-bf8f-4cd0-879c-14b72f41079d",
+  "uuid": "f7d0d3f1-5d85-4c83-9c52-8a1b7e2e7c6f",
   "versionCode": 2,
   "versionLabel": "2.0",
   "watchapp": {
@@ -39,7 +39,8 @@
     "aplite",
     "basalt",
     "chalk",
+    "diorite",
     "emery",
-    "diorite"
+    "gabbro"
   ]
 }
