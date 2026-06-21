@@ -77,8 +77,8 @@ static void initialize_ui(void) {
     .get_num_sections = menu_layer_get_number_sections_callback,
   });
 #if PBL_COLOR
-  menu_layer_set_normal_colors(s_menulayer_credits, GColorWhite, GColorChromeYellow);
-  menu_layer_set_highlight_colors(s_menulayer_credits, GColorWindsorTan, GColorWhite);
+  menu_layer_set_normal_colors(s_menulayer_credits, GColorWhite, GColorBlack);
+  menu_layer_set_highlight_colors(s_menulayer_credits, GColorLightGray, GColorBlack);
 #endif
   menu_layer_set_click_config_onto_window(s_menulayer_credits, s_window);
   layer_add_child(root_layer, menu_layer_get_layer(s_menulayer_credits));
@@ -119,7 +119,7 @@ static void menu_layer_draw_header_callback(GContext *ctx, const Layer *cell_lay
   graphics_draw_line(ctx, p0, p1);
 #endif
 
-  graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorBlack));
+  graphics_context_set_text_color(ctx, GColorBlack);
   graphics_draw_text(ctx, title, font, draw_rect, overflow, align, NULL);
 }
 

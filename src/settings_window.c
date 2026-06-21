@@ -47,7 +47,7 @@ static void initialize_ui(void) {
   });
 #if PBL_COLOR
   menu_layer_set_normal_colors(s_menulayer, GColorWhite, GColorBlack);
-  menu_layer_set_highlight_colors(s_menulayer, GColorBlack, GColorWhite);
+  menu_layer_set_highlight_colors(s_menulayer, GColorLightGray, GColorBlack);
 #endif
   menu_layer_set_click_config_onto_window(s_menulayer, s_window);
   layer_add_child(root_layer, menu_layer_get_layer(s_menulayer));
