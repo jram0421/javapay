@@ -1,4 +1,5 @@
 #include <pebble.h>
+
 #include "card_window.h"
 #include "credits_window.h"
 #include "defines.h"
@@ -6,7 +7,8 @@
 
 static Window *s_window;
 static MenuLayer *s_menulayer;
-static const char *const message = "JavaPay is free. Heart it on the Pebble App Store if it helped you, and please tell your friends. pbl.io/javapay";
+
+static const char *const message = "JavaPay V2 is maintained by jram0421.\nVersion 2.0";
 
 static void handle_window_unload(Window *window);
 static void initialize_ui(void);
@@ -20,7 +22,6 @@ static void menu_layer_select_callback(MenuLayer *menu_layer, MenuIndex *cell_in
 
 void settings_window_push(bool animated) {
   initialize_ui();
-
   window_set_window_handlers(s_window, (WindowHandlers){
     .unload = handle_window_unload,
   });
@@ -33,9 +34,7 @@ void settings_window_pop(bool animated) {
 
 static void initialize_ui(void) {
   s_window = window_create();
-
   Layer *root_layer = window_get_root_layer(s_window);
-
   s_menulayer = menu_layer_create(layer_get_bounds(root_layer));
   menu_layer_set_callbacks(s_menulayer, NULL, (MenuLayerCallbacks){
     .draw_header = menu_layer_draw_header_callback,
@@ -61,21 +60,25 @@ static void handle_window_unload(Window *window) {
 
 static int16_t menu_layer_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   switch (cell_index->section) {
-    case 0: {
-      static int16_t h = -1;
-      if (h < 0) {
-        GRect draw_rect = layer_get_bounds(menu_layer_get_layer(menu_layer));
-        draw_rect.origin.x += 4;
-        draw_rect.size.w -= 8;
-        GSize size = graphics_text_layout_get_content_size(message, fonts_get_system_font(FONT_KEY_GOTHIC_18), draw_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft);
-        h = size.h + 8;
-      }
-      return h;
+  case 0: {
+    static int16_t h = -1;
+    if (h < 0) {
+      GRect draw_rect = layer_get_bounds(menu_layer_get_layer(menu_layer));
+      draw_rect.origin.x += 4;
+      draw_rect.size.w -= 8;
+      GSize size = graphics_text_layout_get_content_size(message,
+                                                         fonts_get_system_font(FONT_KEY_GOTHIC_18),
+                                                         draw_rect,
+                                                         GTextOverflowModeWordWrap,
+                                                         PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
+      h = size.h + 8;
     }
-    case 1:
-      return 32;
-    default:
-      return 44;
+    return h;
+  }
+  case 1:
+    return 32;
+  default:
+    return 44;
   }
 }
 
@@ -89,7 +92,6 @@ static void menu_layer_draw_header_callback(GContext *ctx, const Layer *cell_lay
   GRect draw_rect = layer_get_bounds(cell_layer);
   if (draw_header) {
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorBlack));
-
     graphics_draw_line(ctx, GPoint(0, 1), GPoint(draw_rect.size.w, 1));
     draw_rect.origin.y++;
   }
@@ -98,8 +100,13 @@ static void menu_layer_draw_header_callback(GContext *ctx, const Layer *cell_lay
 #if PBL_PLATFORM_APLITE
     graphics_context_set_text_color(ctx, GColorBlack);
 #endif
-
-    graphics_draw_text(ctx, "Version 1.3", fonts_get_system_font(FONT_KEY_GOTHIC_14), draw_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx,
+                       "JavaPay V2  •  Version 2.0",
+                       fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                       draw_rect,
+                       GTextOverflowModeTrailingEllipsis,
+                       GTextAlignmentCenter,
+                       NULL);
   }
 }
 
@@ -107,7 +114,6 @@ static void menu_layer_draw_row_callback(GContext *ctx, const Layer *cell_layer,
   GRect draw_rect = layer_get_bounds(cell_layer);
   draw_rect.origin.x += 4;
   draw_rect.size.w -= 8;
-
 #if PBL_BW
   graphics_context_set_text_color(ctx, GColorBlack);
 #endif
@@ -116,48 +122,41 @@ static void menu_layer_draw_row_callback(GContext *ctx, const Layer *cell_layer,
   const GTextAlignment align = PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft);
 
   switch (cell_index->section) {
-    case 0:
-      graphics_draw_text(ctx, message, fonts_get_system_font(FONT_KEY_GOTHIC_18), draw_rect, overflow, align, NULL);
-      break;
-
-    case 1: {
-      const char *text;
-      if (cell_index->row == 0) {
-        text = "Change Card";
-      } else {
-        text = "Credits";
-      }
-
-      draw_rect.origin.y -= 3;
-      graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_GOTHIC_28), draw_rect, overflow, align, NULL);
-      break;
-    }
+  case 0:
+    graphics_draw_text(ctx, message, fonts_get_system_font(FONT_KEY_GOTHIC_18), draw_rect, overflow, align, NULL);
+    break;
+  case 1: {
+    const char *text = (cell_index->row == 0) ? "Change Card" : "Credits";
+    draw_rect.origin.y -= 3;
+    graphics_draw_text(ctx, text, fonts_get_system_font(FONT_KEY_GOTHIC_28), draw_rect, overflow, align, NULL);
+    break;
+  }
   }
 }
 
 static int16_t menu_layer_get_header_height_callback(struct MenuLayer *menu_layer, uint16_t section_index, void *callback_context) {
   switch (section_index) {
-    case 0:
-      return 0;
-    case 1:
-      return PBL_IF_COLOR_ELSE(3, 0);
-    case 2:
-      return 18;
-    default:
-      return 16;
+  case 0:
+    return 0;
+  case 1:
+    return PBL_IF_COLOR_ELSE(3, 0);
+  case 2:
+    return 18;
+  default:
+    return 16;
   }
 }
 
 static uint16_t menu_layer_get_number_of_rows_in_section_callback(struct MenuLayer *menu_layer, uint16_t section_index, void *callback_context) {
   switch (section_index) {
-    case 0:
-      return 1;
-    case 1:
-      return 2;
-    case 2:
-      return 0;
-    default:
-      return 0;
+  case 0:
+    return 1;
+  case 1:
+    return 2;
+  case 2:
+    return 0;
+  default:
+    return 0;
   }
 }
 

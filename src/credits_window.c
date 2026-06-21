@@ -1,4 +1,5 @@
 #include <pebble.h>
+
 #include "credits_window.h"
 
 static Window *s_window;
@@ -7,9 +8,14 @@ static MenuLayer *s_menulayer_credits;
 #define ROW(TITLE, SUBTITLE) { .title = (TITLE), .subtitle = (SUBTITLE) }
 
 static SimpleMenuItem s_simplemenuitem_section1[] = {
-  ROW("Alexsander Akers", "@a2"),
+  ROW("jram0421", "JavaPay V2 maintainer"),
 };
+
 static SimpleMenuItem s_simplemenuitem_section2[] = {
+  ROW("Alexsander Akers", "Original JavaPay author, @a2"),
+};
+
+static SimpleMenuItem s_simplemenuitem_section3[] = {
   ROW("Daniel Tomlinson", "@dantoml"),
   ROW("Eric Oesterle", "@erico"),
   ROW("Henri Watson", "@henriwatson"),
@@ -23,11 +29,16 @@ static SimpleMenuSection s_simplemenusection_sections[] = {
   {
     .items = s_simplemenuitem_section1,
     .num_items = ARRAY_LENGTH(s_simplemenuitem_section1),
-    .title = "Author",
+    .title = "JavaPay V2",
   },
   {
     .items = s_simplemenuitem_section2,
     .num_items = ARRAY_LENGTH(s_simplemenuitem_section2),
+    .title = "Original Author",
+  },
+  {
+    .items = s_simplemenuitem_section3,
+    .num_items = ARRAY_LENGTH(s_simplemenuitem_section3),
     .title = "Emotional Support",
   }
 };
@@ -55,9 +66,7 @@ void credits_window_pop(bool animated) {
 
 static void initialize_ui(void) {
   s_window = window_create();
-
   Layer *root_layer = window_get_root_layer(s_window);
-
   s_menulayer_credits = menu_layer_create(layer_get_bounds(root_layer));
   menu_layer_set_callbacks(s_menulayer_credits, NULL, (MenuLayerCallbacks){
     .draw_header = menu_layer_draw_header_callback,
@@ -82,9 +91,7 @@ static void handle_window_unload(Window *window) {
 
 static int16_t menu_layer_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
 #if PBL_ROUND
-  return menu_layer_is_index_selected(menu_layer, cell_index)
-    ? MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT
-    : MENU_CELL_ROUND_UNFOCUSED_SHORT_CELL_HEIGHT;
+  return menu_layer_is_index_selected(menu_layer, cell_index) ? MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT : MENU_CELL_ROUND_UNFOCUSED_SHORT_CELL_HEIGHT;
 #else
   return 44;
 #endif
@@ -98,7 +105,8 @@ static void menu_layer_draw_header_callback(GContext *ctx, const Layer *cell_lay
   GRect draw_rect = layer_get_bounds(cell_layer);
   draw_rect.origin.x += 2;
   draw_rect.size.w -= 4;
-  if (section_index == 1) {
+
+  if (section_index > 0) {
     draw_rect.origin.y += MENU_CELL_BASIC_HEADER_HEIGHT;
     draw_rect.size.h -= MENU_CELL_BASIC_HEADER_HEIGHT;
   }
@@ -121,9 +129,7 @@ static void menu_layer_draw_row_callback(GContext *ctx, const Layer *cell_layer,
 }
 
 static int16_t menu_layer_get_header_height_callback(struct MenuLayer *menu_layer, uint16_t section_index, void *callback_context) {
-  return section_index == 0
-    ? MENU_CELL_BASIC_HEADER_HEIGHT + 1
-    : 2 * MENU_CELL_BASIC_HEADER_HEIGHT + 1;
+  return section_index == 0 ? MENU_CELL_BASIC_HEADER_HEIGHT + 1 : 2 * MENU_CELL_BASIC_HEADER_HEIGHT + 1;
 }
 
 static uint16_t menu_layer_get_number_of_rows_in_section_callback(struct MenuLayer *menu_layer, uint16_t section_index, void *callback_context) {
