@@ -17,9 +17,7 @@ static BitmapLayer *s_bitmaplayer_up_arrow;
 #if PBL_SDK_2
 static InverterLayer *s_inverterlayer;
 #else
-static char s_selection_value[] = "0";
 static Layer *s_layer_selection;
-static TextLayer *s_textlayer_selection_value;
 #endif
 
 static void handle_window_unload(Window *window);
@@ -44,10 +42,6 @@ static GRect prv_digit_grid_rect(void) {
 void card_window_push(bool animated) {
   s_offset = 0;
   strcpy(s_value, ZEROS ZEROS ZEROS ZEROS);
-#if PBL_SDK_3
-  s_selection_value[0] = '0';
-#endif
-
   initialize_ui();
   window_set_click_config_provider(s_window, click_config_provider);
   window_set_window_handlers(s_window, (WindowHandlers){
@@ -120,12 +114,6 @@ static void initialize_ui(void) {
   layer_set_update_proc(s_layer_selection, layer_selection_update_proc);
   layer_add_child(root_layer, s_layer_selection);
 
-  s_textlayer_selection_value = text_layer_create(GRect(1, -8, 14, 32));
-  text_layer_set_background_color(s_textlayer_selection_value, GColorClear);
-  text_layer_set_font(s_textlayer_selection_value, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-  text_layer_set_text(s_textlayer_selection_value, s_selection_value);
-  text_layer_set_text_color(s_textlayer_selection_value, GColorWhite);
-  layer_add_child(s_layer_selection, text_layer_get_layer(s_textlayer_selection_value));
 #endif
 
   s_bitmap_down_arrow = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DOWN_ARROW);
@@ -155,7 +143,6 @@ static void handle_window_unload(Window *window) {
 #if PBL_SDK_2
   inverter_layer_destroy(s_inverterlayer);
 #else
-  text_layer_destroy(s_textlayer_selection_value);
   layer_destroy(s_layer_selection);
 #endif
   gbitmap_destroy(s_bitmap_down_arrow);
@@ -210,18 +197,9 @@ static void update_text(void) {
     memcpy(s_text_card_number + 5 * i, s_value + 4 * i, 4);
   }
   text_layer_set_text(s_textlayer_card_number, s_text_card_number);
-#if PBL_SDK_3
-  s_selection_value[0] = s_value[s_offset];
-  text_layer_set_text(s_textlayer_selection_value, s_selection_value);
-#endif
 }
 
 static void update_frames(void) {
-#if PBL_SDK_3
-  s_selection_value[0] = s_value[s_offset];
-  text_layer_set_text(s_textlayer_selection_value, s_selection_value);
-#endif
-
   GRect grid = prv_digit_grid_rect();
   int16_t char_step = grid.size.w / 9;
   if (char_step < 12) {
