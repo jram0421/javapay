@@ -6,7 +6,7 @@ Fork of [a2/javapay](https://github.com/a2/javapay) adding native support for th
 
 ### `appinfo.json`
 - Added `"emery"` to `targetPlatforms`
-- Version bumped to `1.4`
+- Version bumped to `2.0`
 
 ### `src/barcode_window.c`
 Added an `#if defined(PBL_PLATFORM_EMERY)` layout branch for the 200×228 screen:
