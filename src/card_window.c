@@ -20,56 +20,23 @@ static InverterLayer *s_inverterlayer;
 static Layer *s_layer_selection;
 #endif
 
-#define DIGIT_W 18
-#define DIGIT_H 34
-#define GROUP_GAP 10
-#define ROW_GAP 6
-#define DIGITS_PER_ROW 8
-
-static GRect s_digit_frames[16];
-
 static void handle_window_unload(Window *window);
 static void initialize_ui(void);
 static void click_config_provider(void *context);
 static void handle_single_click(ClickRecognizerRef recognizer, void *context);
 static void update_text(void);
 static void update_frames(void);
-static void rebuild_digit_frames(GRect bounds);
-static void update_selection_frame(void);
-static void update_arrow_frames(GRect bounds);
 
-static int16_t prv_digit_width_for_bounds(GRect bounds) {
-  int16_t max_row_width = bounds.size.w - PBL_IF_ROUND_ELSE(bounds.size.w / 4, 18);
-  int16_t max_digit_w = (max_row_width - GROUP_GAP) / DIGITS_PER_ROW;
-  return (max_digit_w < DIGIT_W) ? max_digit_w : DIGIT_W;
-}
+static GRect prv_digit_grid_rect(void) {
+  Layer *root_layer = window_get_root_layer(s_window);
+  GRect bounds = layer_get_bounds(root_layer);
 
-static GRect prv_card_number_frame(GRect bounds) {
-  int16_t digit_w = prv_digit_width_for_bounds(bounds);
-  int16_t row_width = (digit_w * DIGITS_PER_ROW) + GROUP_GAP;
-  int16_t start_x = (bounds.size.w - row_width) / 2;
-  int16_t start_y = bounds.size.h / 2 - DIGIT_H;
-  return GRect(start_x - 4, start_y - 2, row_width + 8, (DIGIT_H * 2) + ROW_GAP + 8);
-}
+  int16_t margin = PBL_IF_ROUND_ELSE(bounds.size.w / 6, 10);
+  int16_t width = bounds.size.w - (2 * margin);
+  int16_t height = PBL_IF_ROUND_ELSE(72, 68);
+  int16_t y = PBL_IF_ROUND_ELSE(bounds.size.h / 2 - 18, bounds.size.h / 2 - 22);
 
-static void rebuild_digit_frames(GRect bounds) {
-  int16_t digit_w = prv_digit_width_for_bounds(bounds);
-  int16_t row_width = (digit_w * DIGITS_PER_ROW) + GROUP_GAP;
-  int16_t start_x = (bounds.size.w - row_width) / 2;
-  int16_t start_y = bounds.size.h / 2 - DIGIT_H;
-
-  for (int i = 0; i < 16; i++) {
-    int row = i / DIGITS_PER_ROW;
-    int col = i % DIGITS_PER_ROW;
-
-    int16_t x = start_x + (col * digit_w);
-    if (col >= 4) {
-      x += GROUP_GAP;
-    }
-
-    int16_t y = start_y + (row * (DIGIT_H + ROW_GAP));
-    s_digit_frames[i] = GRect(x, y, digit_w, DIGIT_H);
-  }
+  return GRect(margin, y, width, height);
 }
 
 void card_window_push(bool animated) {
@@ -100,10 +67,11 @@ void card_window_set_value(char *value) {
 
 #if PBL_SDK_3
 static void layer_selection_update_proc(Layer *layer, GContext *ctx) {
-  GRect bounds = layer_get_bounds(layer);
+  GRect b = layer_get_bounds(layer);
+  graphics_context_set_fill_color(ctx, GColorClear);
   graphics_context_set_stroke_color(ctx, GColorBlack);
   graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_round_rect(ctx, bounds, 3);
+  graphics_draw_rect(ctx, b);
 }
 #endif
 
@@ -133,8 +101,7 @@ static void initialize_ui(void) {
   text_layer_set_text_alignment(s_textlayer_prompt, GTextAlignmentLeft);
 #endif
 
-  rebuild_digit_frames(bounds);
-  s_textlayer_card_number = text_layer_create(prv_card_number_frame(bounds));
+  s_textlayer_card_number = text_layer_create(prv_digit_grid_rect());
   text_layer_set_background_color(s_textlayer_card_number, GColorClear);
   text_layer_set_text_color(s_textlayer_card_number, GColorBlack);
   text_layer_set_font(s_textlayer_card_number, fonts_get_system_font(FONT_KEY_GOTHIC_28));
@@ -149,6 +116,7 @@ static void initialize_ui(void) {
   s_layer_selection = layer_create(GRectZero);
   layer_set_update_proc(s_layer_selection, layer_selection_update_proc);
   layer_add_child(root_layer, s_layer_selection);
+
 #endif
 
   s_bitmap_down_arrow = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DOWN_ARROW);
@@ -234,56 +202,87 @@ static void update_text(void) {
   text_layer_set_text(s_textlayer_card_number, s_text_card_number);
 }
 
-static void update_selection_frame(void) {
-  GRect f = s_digit_frames[s_offset];
-  GRect selection_frame = GRect(f.origin.x - 2,
-                                f.origin.y - 2,
-                                f.size.w + 4,
-                                f.size.h + 4);
+#if PBL_SDK_3
+static int16_t prv_text_width(const char *text) {
+  GSize size = graphics_text_layout_get_content_size(text,
+                                                      fonts_get_system_font(FONT_KEY_GOTHIC_28),
+                                                      GRect(0, 0, 200, 40),
+                                                      GTextOverflowModeTrailingEllipsis,
+                                                      GTextAlignmentLeft);
+  return size.w;
+}
+#endif
+
+static int16_t prv_clamp_i16(int16_t value, int16_t min, int16_t max) {
+  if (value < min) {
+    return min;
+  }
+  if (value > max) {
+    return max;
+  }
+  return value;
+}
+
+static void update_frames(void) {
+  Layer *root_layer = window_get_root_layer(s_window);
+  GRect bounds = layer_get_bounds(root_layer);
+  GRect grid = prv_digit_grid_rect();
+
+  int16_t row = s_offset >= 8 ? 1 : 0;
+  int16_t col = s_offset % 8;
+  int16_t row_height = 33;
+
+#if PBL_SDK_3
+  const char *line = "0000 0000";
+  char prefix[10] = {0};
+  int16_t digit_index = (col < 4) ? col : col + 1;
+  strncpy(prefix, line, digit_index);
+
+  int16_t line_width = prv_text_width(line);
+  int16_t prefix_width = prv_text_width(prefix);
+  int16_t digit_width = prv_text_width("0");
+  int16_t line_start_x = grid.origin.x + (grid.size.w - line_width) / 2;
+
+  GRect selection_frame = GRect(line_start_x + prefix_width - 3,
+                                grid.origin.y + 6 + row * row_height,
+                                digit_width + 6,
+                                29);
+#else
+  int16_t char_step = grid.size.w / 9;
+  if (char_step < 12) {
+    char_step = 12;
+  }
+  int16_t start_x = grid.origin.x + (grid.size.w - ((8 * char_step) + 5)) / 2;
+
+  GRect selection_frame = GRect(start_x + col * char_step + (col >= 4 ? 5 : 0) - 2,
+                                grid.origin.y + 8 + row * row_height,
+                                15,
+                                26);
+#endif
+
+  // Keep the arrows entirely inside the screen. Emery showed the old tiny
+  // arrow frames clipped because they were positioned using negative offsets.
+  const int16_t arrow_w = 11;
+  const int16_t arrow_h = 8;
+  int16_t arrow_x = selection_frame.origin.x + (selection_frame.size.w - arrow_w) / 2;
+  arrow_x = prv_clamp_i16(arrow_x, 1, bounds.size.w - arrow_w - 1);
+
+  int16_t up_y = prv_clamp_i16(selection_frame.origin.y - arrow_h - 3,
+                               1,
+                               bounds.size.h - arrow_h - 1);
+  int16_t down_y = prv_clamp_i16(selection_frame.origin.y + selection_frame.size.h + 3,
+                                 1,
+                                 bounds.size.h - arrow_h - 1);
+
+  GRect up_arrow_frame = GRect(arrow_x, up_y, arrow_w, arrow_h);
+  GRect down_arrow_frame = GRect(arrow_x, down_y, arrow_w, arrow_h);
+
 #if PBL_SDK_2
   layer_set_frame(inverter_layer_get_layer(s_inverterlayer), selection_frame);
 #else
   layer_set_frame(s_layer_selection, selection_frame);
   layer_mark_dirty(s_layer_selection);
 #endif
-}
-
-static void prv_set_bitmap_frame_centered(BitmapLayer *bitmap_layer, GBitmap *bitmap, GPoint center) {
-  GRect bitmap_bounds = gbitmap_get_bounds(bitmap);
-  if (bitmap_bounds.size.w <= 0) {
-    bitmap_bounds.size.w = 9;
-  }
-  if (bitmap_bounds.size.h <= 0) {
-    bitmap_bounds.size.h = 6;
-  }
-
-  layer_set_frame(bitmap_layer_get_layer(bitmap_layer),
-                  GRect(center.x - (bitmap_bounds.size.w / 2),
-                        center.y - (bitmap_bounds.size.h / 2),
-                        bitmap_bounds.size.w,
-                        bitmap_bounds.size.h));
-}
-
-static void update_arrow_frames(GRect bounds) {
-  GRect f = s_digit_frames[s_offset];
-  int16_t center_x = f.origin.x + (f.size.w / 2);
-
-  // Keep the arrow layers large enough for the full PNGs and pull them away
-  // from the highlight box so they do not clip on Emery.
-  prv_set_bitmap_frame_centered(s_bitmaplayer_up_arrow,
-                                s_bitmap_up_arrow,
-                                GPoint(center_x, f.origin.y - 8));
-  prv_set_bitmap_frame_centered(s_bitmaplayer_down_arrow,
-                                s_bitmap_down_arrow,
-                                GPoint(center_x, f.origin.y + f.size.h + 8));
-}
-
-static void update_frames(void) {
-  Layer *root_layer = window_get_root_layer(s_window);
-  GRect bounds = layer_get_bounds(root_layer);
-
-  rebuild_digit_frames(bounds);
-  layer_set_frame(text_layer_get_layer(s_textlayer_card_number), prv_card_number_frame(bounds));
-  update_selection_frame();
-  update_arrow_frames(bounds);
+  layer_set_frame(bitmap_layer_get_layer(s_bitmaplayer_down_arrow), down_arrow_frame);
+  layer_set_frame(bitmap_layer_get_layer(s_bitmaplayer_up_arrow), up_arrow_frame);
 }
