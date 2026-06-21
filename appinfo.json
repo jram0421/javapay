@@ -1,6 +1,6 @@
 {
-  "companyName": "Alexsander Akers",
-  "longName": "JavaPay",
+  "companyName": "jram0421",
+  "longName": "JavaPay V2",
   "projectType": "native",
   "resources": {
     "media": [
@@ -30,14 +30,15 @@
   "sdkVersion": "3",
   "shortName": "JavaPay",
   "uuid": "7c62a80d-bf8f-4cd0-879c-14b72f41079d",
-  "versionCode": 1,
-  "versionLabel": "1.3",
+  "versionCode": 2,
+  "versionLabel": "2.0",
   "watchapp": {
     "watchface": false
   },
   "targetPlatforms": [
     "aplite",
     "basalt",
-    "chalk"
+    "chalk",
+    "emery"
   ]
 }
