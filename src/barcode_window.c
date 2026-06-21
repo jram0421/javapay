@@ -1,4 +1,5 @@
 #include <pebble.h>
+
 #include "card_window.h"
 #include "defines.h"
 #include "pdf417.h"
@@ -9,7 +10,7 @@ static char s_value[] = ZEROS ZEROS ZEROS ZEROS;
 static GBitmap *s_bitmap_app_icon;
 static BitmapLayer *s_bitmaplayer_app_icon;
 static GBitmap *s_bitmap_barcode;
-static BitmapLayer *s_bitmaplayer_barcode;
+static Layer *s_layer_barcode;
 static char s_text_card_number[20] = ZEROS " " ZEROS " " ZEROS " " ZEROS;
 static TextLayer *s_textlayer_card_number;
 static bool s_has_appeared = false;
@@ -19,11 +20,46 @@ static void handle_window_unload(Window *window);
 static void initialize_ui(void);
 static void click_config_provider(void *context);
 static void handle_single_click(ClickRecognizerRef recognizer, void *context);
+static void barcode_layer_update_proc(Layer *layer, GContext *ctx);
+
+static int16_t prv_margin_for_bounds(GRect bounds) {
+  return PBL_IF_ROUND_ELSE(bounds.size.w / 10, bounds.size.w / 18);
+}
+
+static void prv_layout_layers(void) {
+  Layer *root_layer = window_get_root_layer(s_window);
+  GRect bounds = layer_get_bounds(root_layer);
+  int16_t margin = prv_margin_for_bounds(bounds);
+
+  const int16_t icon_w = 119;
+  const int16_t icon_h = 25;
+  GRect app_icon_frame = GRect((bounds.size.w - icon_w) / 2,
+                               PBL_IF_ROUND_ELSE(bounds.size.h / 5, bounds.size.h / 6),
+                               icon_w,
+                               icon_h);
+  layer_set_frame(bitmap_layer_get_layer(s_bitmaplayer_app_icon), app_icon_frame);
+
+  int16_t barcode_w = bounds.size.w - (2 * margin);
+  int16_t barcode_h = bounds.size.h / 3;
+  if (barcode_h > barcode_w / 2) {
+    barcode_h = barcode_w / 2;
+  }
+  GRect barcode_frame = GRect((bounds.size.w - barcode_w) / 2,
+                              (bounds.size.h - barcode_h) / 2,
+                              barcode_w,
+                              barcode_h);
+  layer_set_frame(s_layer_barcode, barcode_frame);
+
+  GRect card_number_frame = GRect(margin,
+                                  barcode_frame.origin.y + barcode_frame.size.h + 8,
+                                  bounds.size.w - (2 * margin),
+                                  22);
+  layer_set_frame(text_layer_get_layer(s_textlayer_card_number), card_number_frame);
+}
 
 void barcode_window_push(bool animated) {
   initialize_ui();
   s_has_appeared = false;
-
   window_set_click_config_provider(s_window, click_config_provider);
   window_set_window_handlers(s_window, (WindowHandlers){
     .appear = handle_window_appear,
@@ -43,28 +79,41 @@ static void initialize_ui(void) {
   window_set_fullscreen(s_window, true);
 #endif
 
-  const GRect barcode_frame = PBL_IF_ROUND_ELSE((GRect(0, 63, 180, 54)), (GRect(0, 57, 144, 54)));
-  s_bitmaplayer_barcode = bitmap_layer_create(barcode_frame);
-  bitmap_layer_set_alignment(s_bitmaplayer_barcode, GAlignCenter);
-  bitmap_layer_set_background_color(s_bitmaplayer_barcode, GColorWhite);
+  Layer *root_layer = window_get_root_layer(s_window);
+  GRect bounds = layer_get_bounds(root_layer);
 
-  const GRect app_icon_frame = PBL_IF_ROUND_ELSE((GRect(30, 33, 119, 25)), (GRect(12, 25, 119, 25)));
+  s_layer_barcode = layer_create(bounds);
+  layer_set_update_proc(s_layer_barcode, barcode_layer_update_proc);
+
   s_bitmap_app_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_JAVAPAY);
-  s_bitmaplayer_app_icon = bitmap_layer_create(app_icon_frame);
+  s_bitmaplayer_app_icon = bitmap_layer_create(GRectZero);
   bitmap_layer_set_bitmap(s_bitmaplayer_app_icon, s_bitmap_app_icon);
   bitmap_layer_set_compositing_mode(s_bitmaplayer_app_icon, PBL_IF_COLOR_ELSE(GCompOpSet, GCompOpAssign));
+  bitmap_layer_set_alignment(s_bitmaplayer_app_icon, GAlignCenter);
 
-  const GRect card_number_frame = PBL_IF_ROUND_ELSE((GRect(19, 121, 142, 20)), (GRect(1, 113, 142, 20)));
-  s_textlayer_card_number = text_layer_create(card_number_frame);
+  s_textlayer_card_number = text_layer_create(GRectZero);
   text_layer_set_background_color(s_textlayer_card_number, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorBlack));
   text_layer_set_font(s_textlayer_card_number, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_alignment(s_textlayer_card_number, GTextAlignmentCenter);
   text_layer_set_text_color(s_textlayer_card_number, GColorWhite);
 
-  Layer *root_layer = window_get_root_layer(s_window);
-  layer_add_child(root_layer, (Layer *)s_bitmaplayer_barcode);
-  layer_add_child(root_layer, (Layer *)s_bitmaplayer_app_icon);
-  layer_add_child(root_layer, (Layer *)s_textlayer_card_number);
+  layer_add_child(root_layer, s_layer_barcode);
+  layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmaplayer_app_icon));
+  layer_add_child(root_layer, text_layer_get_layer(s_textlayer_card_number));
+
+  prv_layout_layers();
+}
+
+static void barcode_layer_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+
+  if (s_bitmap_barcode != NULL) {
+    // Draw into the current layer bounds so Emery/Gabbro get a full-size barcode
+    // instead of the legacy 138x48 bitmap being pinned at its original size.
+    graphics_draw_bitmap_in_rect(ctx, s_bitmap_barcode, bounds);
+  }
 }
 
 static void persist_read_barcode(void) {
@@ -73,7 +122,7 @@ static void persist_read_barcode(void) {
   }
 
   s_bitmap_barcode = pdf417_create_bitmap(s_value);
-  bitmap_layer_set_bitmap(s_bitmaplayer_barcode, s_bitmap_barcode);
+  layer_mark_dirty(s_layer_barcode);
 
   for (int i = 0; i < 4; i++) {
     memcpy(s_text_card_number + 5 * i, s_value + 4 * i, 4);
@@ -106,7 +155,7 @@ static void handle_window_unload(Window *window) {
   window_destroy(window);
   gbitmap_destroy(s_bitmap_app_icon);
   bitmap_layer_destroy(s_bitmaplayer_app_icon);
-  bitmap_layer_destroy(s_bitmaplayer_barcode);
+  layer_destroy(s_layer_barcode);
   text_layer_destroy(s_textlayer_card_number);
 
   if (s_bitmap_barcode != NULL) {
