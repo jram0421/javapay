@@ -46,8 +46,8 @@ static void initialize_ui(void) {
     .select_click = menu_layer_select_callback,
   });
 #if PBL_COLOR
-  menu_layer_set_normal_colors(s_menulayer, GColorWhite, GColorChromeYellow);
-  menu_layer_set_highlight_colors(s_menulayer, GColorWindsorTan, GColorWhite);
+  menu_layer_set_normal_colors(s_menulayer, GColorWhite, GColorBlack);
+  menu_layer_set_highlight_colors(s_menulayer, GColorBlack, GColorWhite);
 #endif
   menu_layer_set_click_config_onto_window(s_menulayer, s_window);
   layer_add_child(root_layer, menu_layer_get_layer(s_menulayer));
@@ -91,15 +91,13 @@ static void menu_layer_draw_header_callback(GContext *ctx, const Layer *cell_lay
 
   GRect draw_rect = layer_get_bounds(cell_layer);
   if (draw_header) {
-    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorBlack));
+    graphics_context_set_stroke_color(ctx, GColorBlack);
     graphics_draw_line(ctx, GPoint(0, 1), GPoint(draw_rect.size.w, 1));
     draw_rect.origin.y++;
   }
 
   if (section_index == 2) {
-#if PBL_PLATFORM_APLITE
-    graphics_context_set_text_color(ctx, GColorBlack);
-#endif
+graphics_context_set_text_color(ctx, GColorBlack);
     graphics_draw_text(ctx,
                        "JavaPay V2  •  Version 2.0",
                        fonts_get_system_font(FONT_KEY_GOTHIC_14),
@@ -114,9 +112,7 @@ static void menu_layer_draw_row_callback(GContext *ctx, const Layer *cell_layer,
   GRect draw_rect = layer_get_bounds(cell_layer);
   draw_rect.origin.x += 4;
   draw_rect.size.w -= 8;
-#if PBL_BW
-  graphics_context_set_text_color(ctx, GColorBlack);
-#endif
+graphics_context_set_text_color(ctx, GColorBlack);
 
   const GTextOverflowMode overflow = GTextOverflowModeWordWrap;
   const GTextAlignment align = PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft);

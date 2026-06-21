@@ -69,14 +69,14 @@ void card_window_set_value(char *value) {
 
 #if PBL_SDK_3
 static void layer_selection_update_proc(Layer *layer, GContext *ctx) {
-  graphics_context_set_fill_color(ctx, GColorWindsorTan);
+  graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, layer_get_bounds(layer), 2, GCornersAll);
 }
 #endif
 
 static void initialize_ui(void) {
   s_window = window_create();
-  window_set_background_color(s_window, PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack));
+  window_set_background_color(s_window, GColorWhite);
 
   Layer *root_layer = window_get_root_layer(s_window);
   GRect bounds = layer_get_bounds(root_layer);
@@ -87,8 +87,8 @@ static void initialize_ui(void) {
                              bounds.size.w - (2 * margin),
                              PBL_IF_ROUND_ELSE(70, 44));
   s_textlayer_prompt = text_layer_create(prompt_frame);
-  text_layer_set_background_color(s_textlayer_prompt, PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack));
-  text_layer_set_text_color(s_textlayer_prompt, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorWhite));
+  text_layer_set_background_color(s_textlayer_prompt, GColorWhite);
+  text_layer_set_text_color(s_textlayer_prompt, GColorBlack);
   text_layer_set_font(s_textlayer_prompt, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   layer_add_child(root_layer, text_layer_get_layer(s_textlayer_prompt));
 
@@ -101,8 +101,8 @@ static void initialize_ui(void) {
 #endif
 
   s_textlayer_card_number = text_layer_create(prv_digit_grid_rect());
-  text_layer_set_background_color(s_textlayer_card_number, PBL_IF_COLOR_ELSE(GColorClear, GColorBlack));
-  text_layer_set_text_color(s_textlayer_card_number, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorWhite));
+  text_layer_set_background_color(s_textlayer_card_number, GColorClear);
+  text_layer_set_text_color(s_textlayer_card_number, GColorBlack);
   text_layer_set_font(s_textlayer_card_number, fonts_get_system_font(FONT_KEY_GOTHIC_28));
   text_layer_set_text_alignment(s_textlayer_card_number, GTextAlignmentCenter);
   text_layer_set_overflow_mode(s_textlayer_card_number, GTextOverflowModeWordWrap);

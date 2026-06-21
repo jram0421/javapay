@@ -74,7 +74,7 @@ void barcode_window_pop(bool animated) {
 
 static void initialize_ui(void) {
   s_window = window_create();
-  window_set_background_color(s_window, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorBlack));
+  window_set_background_color(s_window, GColorWhite);
 #if PBL_SDK_2
   window_set_fullscreen(s_window, true);
 #endif
@@ -88,14 +88,14 @@ static void initialize_ui(void) {
   s_bitmap_app_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_JAVAPAY);
   s_bitmaplayer_app_icon = bitmap_layer_create(GRectZero);
   bitmap_layer_set_bitmap(s_bitmaplayer_app_icon, s_bitmap_app_icon);
-  bitmap_layer_set_compositing_mode(s_bitmaplayer_app_icon, PBL_IF_COLOR_ELSE(GCompOpSet, GCompOpAssign));
+  bitmap_layer_set_compositing_mode(s_bitmaplayer_app_icon, GCompOpAssignInverted);
   bitmap_layer_set_alignment(s_bitmaplayer_app_icon, GAlignCenter);
 
   s_textlayer_card_number = text_layer_create(GRectZero);
-  text_layer_set_background_color(s_textlayer_card_number, PBL_IF_COLOR_ELSE(GColorWindsorTan, GColorBlack));
+  text_layer_set_background_color(s_textlayer_card_number, GColorWhite);
   text_layer_set_font(s_textlayer_card_number, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_alignment(s_textlayer_card_number, GTextAlignmentCenter);
-  text_layer_set_text_color(s_textlayer_card_number, GColorWhite);
+  text_layer_set_text_color(s_textlayer_card_number, GColorBlack);
 
   layer_add_child(root_layer, s_layer_barcode);
   layer_add_child(root_layer, bitmap_layer_get_layer(s_bitmaplayer_app_icon));
@@ -112,6 +112,7 @@ static void barcode_layer_update_proc(Layer *layer, GContext *ctx) {
   if (s_bitmap_barcode != NULL) {
     // Draw into the current layer bounds so Emery/Gabbro get a full-size barcode
     // instead of the legacy 138x48 bitmap being pinned at its original size.
+    graphics_context_set_compositing_mode(ctx, GCompOpAssignInverted);
     graphics_draw_bitmap_in_rect(ctx, s_bitmap_barcode, bounds);
   }
 }
