@@ -64,7 +64,7 @@ static void initialize_ui(void) {
   //   Card number: y=113, h=20  → bottom at 133
   //   Remaining:   168-133 = 35px, top padding 25px — roughly balanced
 
-#if defined(PBL_PLATFORM_EMERY)
+#if PBL_DISPLAY_HEIGHT == 228
   // 200x228
   const GRect app_icon_frame    = GRect(40,  34, 119, 25);  // (200-119)/2 = 40
   const GRect barcode_frame     = GRect(0,   76, 200, 82);

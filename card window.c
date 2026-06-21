@@ -50,7 +50,7 @@ static void update_frames(void);
 // For chalk (180px wide, round), CARD_NUM_FRAME x=5 w=170:
 //   Original SEL_START.x = 39, verified working.
 
-#if defined(PBL_PLATFORM_EMERY)
+#if PBL_DISPLAY_HEIGHT == 228
   // 200x228
   #define SCREEN_W          200
   #define PROMPT_FRAME      GRect(5,   10, 190, 46)
