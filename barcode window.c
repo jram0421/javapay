@@ -44,26 +44,39 @@ static void initialize_ui(void) {
 #endif
 
   // Screen sizes:
-  //   aplite/basalt/diorite: 144x168  (rectangular, b&w or color)
-  //   chalk:                 180x180  (round, color)
-  //   emery (Pebble Time 2): 200x228  (rectangular, color)
+  //   aplite/basalt/diorite: 144x168
+  //   chalk (round):         180x180
+  //   emery (PT2):           200x228
   //
-  // Layout: JavaPay logo at top, PDF417 barcode centered, card number at bottom.
-  // Emery has ~39% more vertical space than basalt, so we scale proportionally.
+  // Logo bitmap is 119x25px. Center x = (screen_w - 119) / 2.
+  // Barcode layer spans full width; GAlignCenter handles internal centering.
+  // Card number text layer spans full width with 4px margin each side.
+  //
+  // Vertical layout (emery, 228px tall):
+  //   Logo:        y=34,  h=25  → bottom at 59
+  //   Barcode:     y=76,  h=82  → bottom at 158  (center ~117, screen center 114 — close enough with logo above)
+  //   Card number: y=168, h=20  → bottom at 188
+  //   Remaining:   228-188 = 40px padding at bottom (balanced with ~34px at top)
+  //
+  // Vertical layout (144x168, basalt/diorite):
+  //   Logo:        y=25,  h=25  → bottom at 50
+  //   Barcode:     y=57,  h=54  → bottom at 111
+  //   Card number: y=113, h=20  → bottom at 133
+  //   Remaining:   168-133 = 35px, top padding 25px — roughly balanced
 
 #if defined(PBL_PLATFORM_EMERY)
-  // 200x228 — logo, large barcode area, card number
-  const GRect app_icon_frame    = GRect(40,  30, 119, 25);   // centered in 200px wide
-  const GRect barcode_frame     = GRect(0,   75, 200, 80);   // wider + taller barcode
-  const GRect card_number_frame = GRect(4,  165, 192, 20);   // full-width card number
+  // 200x228
+  const GRect app_icon_frame    = GRect(40,  34, 119, 25);  // (200-119)/2 = 40
+  const GRect barcode_frame     = GRect(0,   76, 200, 82);
+  const GRect card_number_frame = GRect(4,  168, 192, 20);
 #elif PBL_ROUND
-  // chalk: 180x180
-  const GRect app_icon_frame    = GRect(30,  33, 119, 25);
+  // chalk 180x180
+  const GRect app_icon_frame    = GRect(30,  33, 119, 25);  // (180-119)/2 = 30
   const GRect barcode_frame     = GRect(0,   63, 180, 54);
   const GRect card_number_frame = GRect(19, 121, 142, 20);
 #else
-  // aplite / basalt / diorite: 144x168
-  const GRect app_icon_frame    = GRect(12,  25, 119, 25);
+  // aplite / basalt / diorite 144x168
+  const GRect app_icon_frame    = GRect(12,  25, 119, 25);  // (144-119)/2 = 12
   const GRect barcode_frame     = GRect(0,   57, 144, 54);
   const GRect card_number_frame = GRect(1,  113, 142, 20);
 #endif

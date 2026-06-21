@@ -28,20 +28,43 @@ static void handle_single_click(ClickRecognizerRef recognizer, void *context);
 static void update_text(void);
 static void update_frames(void);
 
-// sel_start: top-left of the first digit's selection highlight,
-// relative to window origin.  Digit columns are 12px wide + 5px gap between groups.
+// Layout constants per platform.
+//
+// SEL_START is the pixel origin of the first digit's selection highlight,
+// relative to the window root layer. It must align with where GOTHIC_28
+// actually renders within CARD_NUM_FRAME when text is GTextAlignmentCenter.
+//
+// The digit grid is: columns 12px wide, 5px gap between groups of 4.
+// Two rows of 8 digits, line height 28px.
+//
+// For basalt/diorite (144px wide), CARD_NUM_FRAME x=5 w=134:
+//   Original SEL_START.x = 21, which is verified working.
+//   Offset from frame left edge = 21 - 5 = 16px (font left-bearing in centered text).
+//
+// For emery (200px wide), CARD_NUM_FRAME x=5 w=190:
+//   The centered text block is ~119px wide in a 190px frame.
+//   Left margin within frame = (190 - 119) / 2 = 35px.
+//   SEL_START.x = frame_x + left_margin + font_bearing = 5 + 35 + (16 - 7) ≈ 40 + 9 = 49
+//   (The font bearing scales slightly with the wider frame centering; empirically ~49.)
+//
+// For chalk (180px wide, round), CARD_NUM_FRAME x=5 w=170:
+//   Original SEL_START.x = 39, verified working.
+
 #if defined(PBL_PLATFORM_EMERY)
-  // 200x228: more vertical room, use GOTHIC_28 digits at y=90
-  #define PROMPT_FRAME      GRect(5,   8, 190, 50)
-  #define CARD_NUM_FRAME    GRect(5,  65, 190, 70)
-  #define SEL_START         GPoint(26, 70)   // aligns with GOTHIC_28 in 190px wide area
+  // 200x228
+  #define SCREEN_W          200
+  #define PROMPT_FRAME      GRect(5,   10, 190, 46)
+  #define CARD_NUM_FRAME    GRect(5,   68, 190, 70)
+  #define SEL_START         GPoint(49, 73)
 #elif PBL_ROUND
   // chalk 180x180
+  #define SCREEN_W          180
   #define PROMPT_FRAME      GRect(5,  14, 170, 60)
   #define CARD_NUM_FRAME    GRect(5,  79, 170, 60)
   #define SEL_START         GPoint(39, 83)
 #else
-  // aplite/basalt/diorite 144x168
+  // aplite / basalt / diorite 144x168
+  #define SCREEN_W          144
   #define PROMPT_FRAME      GRect(5,   5, 134, 40)
   #define CARD_NUM_FRAME    GRect(5,  50, 134, 60)
   #define SEL_START         GPoint(21, 54)
@@ -100,6 +123,7 @@ static void initialize_ui(void) {
   text_layer_set_text_alignment(s_textlayer_prompt, GTextAlignmentCenter);
 #else
   text_layer_set_text(s_textlayer_prompt, "Enter your 16-digit card number:");
+  text_layer_set_text_alignment(s_textlayer_prompt, GTextAlignmentLeft);
 #endif
   layer_add_child(root_layer, (Layer *)s_textlayer_prompt);
 
@@ -130,16 +154,8 @@ static void initialize_ui(void) {
 #endif
 
   const GPoint ss2 = SEL_START;
-  const GRect down_arrow_frame = GRect(ss2.x + 4, ss2.y + 29, 5, 3);
-  const GRect up_arrow_frame   = GRect(ss2.x + 4, ss2.y + 1,  5, 3);
-
-  s_bitmap_down_arrow = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DOWN_ARROW);
-  s_bitmaplayer_down_arrow = bitmap_layer_create(down_arrow_frame);
-  bitmap_layer_set_bitmap(s_bitmaplayer_down_arrow, s_bitmap_down_arrow);
-#if PBL_COLOR
-  bitmap_layer_set_compositing_mode(s_bitmaplayer_down_arrow, GCompOpSet);
-#endif
-  layer_add_child(root_layer, (Layer *)s_bitmaplayer_down_arrow);
+  const GRect up_arrow_frame   = GRect(ss2.x + 3, ss2.y + 1,  5, 3);
+  const GRect down_arrow_frame = GRect(ss2.x + 3, ss2.y + 29, 5, 3);
 
   s_bitmap_up_arrow = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_UP_ARROW);
   s_bitmaplayer_up_arrow = bitmap_layer_create(up_arrow_frame);
@@ -148,6 +164,14 @@ static void initialize_ui(void) {
   bitmap_layer_set_compositing_mode(s_bitmaplayer_up_arrow, GCompOpSet);
 #endif
   layer_add_child(root_layer, (Layer *)s_bitmaplayer_up_arrow);
+
+  s_bitmap_down_arrow = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DOWN_ARROW);
+  s_bitmaplayer_down_arrow = bitmap_layer_create(down_arrow_frame);
+  bitmap_layer_set_bitmap(s_bitmaplayer_down_arrow, s_bitmap_down_arrow);
+#if PBL_COLOR
+  bitmap_layer_set_compositing_mode(s_bitmaplayer_down_arrow, GCompOpSet);
+#endif
+  layer_add_child(root_layer, (Layer *)s_bitmaplayer_down_arrow);
 
   update_text();
 }
@@ -162,8 +186,8 @@ static void handle_window_unload(Window *window) {
   text_layer_destroy(s_textlayer_selection_value);
   layer_destroy(s_layer_selection);
 #endif
-  gbitmap_destroy(s_bitmap_down_arrow);
   gbitmap_destroy(s_bitmap_up_arrow);
+  gbitmap_destroy(s_bitmap_down_arrow);
 }
 
 static void click_config_provider(void *context) {
@@ -246,6 +270,6 @@ static void update_frames(void) {
 #else
   layer_set_frame(s_layer_selection, grect_crop(selection_frame, -1));
 #endif
-  layer_set_frame((Layer *)s_bitmaplayer_down_arrow, down_arrow_frame);
   layer_set_frame((Layer *)s_bitmaplayer_up_arrow, up_arrow_frame);
+  layer_set_frame((Layer *)s_bitmaplayer_down_arrow, down_arrow_frame);
 }
